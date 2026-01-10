@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/db'); 
+const { sequelize } = require('../config/db');
 
 const Video = sequelize.define('Video', {
     id: {
@@ -8,12 +8,12 @@ const Video = sequelize.define('Video', {
         primaryKey: true
     },
     userId: {
-        type: DataTypes.STRING,
+        type: DataTypes.UUID,
         allowNull: false
     },
-    parentId: { // <--- 🆕 यह नया कॉलम है (Undo के लिए)
-        type: DataTypes.STRING,
-        allowNull: true // ओरिजिनल वीडियो का कोई पैरेंट नहीं होता
+    parentId: { 
+        type: DataTypes.UUID, 
+        allowNull: true
     },
     title: {
         type: DataTypes.STRING,
@@ -26,6 +26,10 @@ const Video = sequelize.define('Video', {
     filePath: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    thumbnail: {  // <--- NEW COLUMN
+        type: DataTypes.STRING,
+        allowNull: true // Old videos won't have it immediately
     },
     size: {
         type: DataTypes.INTEGER,
