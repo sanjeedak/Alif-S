@@ -5,68 +5,57 @@ const fs = require('fs');
 // 1. Storage Engine
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        let folder = 'uploads/videos/'; // Default for videos
+        let folder = 'uploads/originals/'; // Default video folder (matching your previous setup)
 
-        // Determine folder based on file type
         if (file.mimetype.startsWith('image')) {
             folder = 'uploads/images/';
         } else if (file.mimetype.startsWith('audio')) {
             folder = 'uploads/audio/';
         }
         
-        // ✅ SAFETY CHECK: Create folder if it doesn't exist
-        // Note: We resolve path relative to the root of your project
-        const fullPath = path.join(__dirname, '../', folder);
+        // 🔥 FIX: Hamesha Project Root se path resolve karein
+        const rootPath = process.cwd();
+        const fullPath = path.join(rootPath, folder);
         
         if (!fs.existsSync(fullPath)) {
             fs.mkdirSync(fullPath, { recursive: true });
         }
         
+        // Multer ko relative path chahiye hota hai
         cb(null, folder);
     },
     filename: (req, file, cb) => {
-        // Unique filename: Fieldname-Date-RandomNumber.ext
+        // Safe filename format: alifs-1672531200-928374.mp4
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+        cb(null, 'alifs-' + uniqueSuffix + path.extname(file.originalname).toLowerCase());
     }
 });
 
-// 2. File Filter (Enhanced to include Audio)
+// 2. File Filter
 const fileFilter = (req, file, cb) => {
-    // --- VIDEO CHECKS ---
-    const videoExt = /mp4|mov|avi|mkv|wmv|flv|webm/;
-    const videoMime = /video\/(mp4|quicktime|x-msvideo|x-matroska|webm|x-flv|mpeg)/; // Added mpeg
-
-    // --- IMAGE CHECKS ---
-    const imageExt = /jpeg|jpg|png|gif|webp|svg/;
+    // Regex for broad matching
+    const videoMime = /video\/(mp4|quicktime|x-msvideo|x-matroska|webm|x-flv|mpeg)/;
     const imageMime = /image\/(jpeg|jpg|png|gif|webp|svg\+xml)/;
-
-    // --- AUDIO CHECKS (New) ---
-    const audioExt = /mp3|wav|m4a|aac|ogg/;
     const audioMime = /audio\/(mpeg|wav|x-wav|aac|ogg|mp4|x-m4a)/; 
 
-    const extname = path.extname(file.originalname).toLowerCase();
-    
-    // Validate Extension AND MimeType
-    const isVideo = videoExt.test(extname) && (videoMime.test(file.mimetype) || file.mimetype === 'application/octet-stream'); // Octet-stream allows some MKVs
-    const isImage = imageExt.test(extname) && imageMime.test(file.mimetype);
-    const isAudio = audioExt.test(extname) && audioMime.test(file.mimetype);
+    const isVideo = videoMime.test(file.mimetype) || file.mimetype === 'application/octet-stream';
+    const isImage = imageMime.test(file.mimetype);
+    const isAudio = audioMime.test(file.mimetype);
 
     if (isVideo || isImage || isAudio) {
         cb(null, true);
     } else {
-        // Log the rejected file details for debugging
         console.error(`❌ Rejected File: ${file.originalname} | Mime: ${file.mimetype}`);
-        cb(new Error('Error: Unsupported file type! Only Videos, Images, and Audio allowed.'));
+        cb(new Error('Unsupported file format! Only Videos, Images, and Audio allowed.'), false);
     }
 };
 
 const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
-    // ✅ FIX LIMITS: 
-    // 500MB = 500 * 1024 * 1024
-    limits: { fileSize: 500 * 1024 * 1024 } 
+    limits: { 
+        fileSize: 500 * 1024 * 1024 // 500MB Limit
+    } 
 });
 
 module.exports = upload;

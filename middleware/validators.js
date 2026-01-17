@@ -64,19 +64,28 @@ const mirrorSchema = Joi.object({
     direction: Joi.string().valid('v', 'h').required()
 });
 
+// 🔥 UPDATED: Canva-style Merge Schema to handle multiple tracks
 const mergeSchema = Joi.object({
-    videoId1: Joi.string().guid({ version: 'uuidv4' }).required(),
-    videoId2: Joi.string().guid({ version: 'uuidv4' }).required()
+    timelineData: Joi.object({
+        tracks: Joi.array().items(Joi.object({
+            videoId: Joi.string().guid({ version: 'uuidv4' }).required()
+        })).min(1).required(),
+        audioTracks: Joi.array().optional()
+    }).required(),
+    settings: Joi.object({
+        width: Joi.number().optional(),
+        height: Joi.number().optional()
+    }).optional()
 });
 
 const filterSchema = Joi.object({
     videoId: Joi.string().guid({ version: 'uuidv4' }).required(),
-    filterType: Joi.string().valid('invert', 'sepia', 'contrast', 'brightness', 'grayscale', 'none').required()
+    filterType: Joi.string().required() // Allow custom FFmpeg filter strings
 });
 
 const watermarkSchema = Joi.object({
     videoId: Joi.string().guid({ version: 'uuidv4' }).required(),
-    text: Joi.string().max(50).required()
+    text: Joi.string().max(100).required()
 });
 
 const gifSchema = Joi.object({
@@ -110,8 +119,8 @@ const addTextSchema = Joi.object({
 
 const addImageSchema = Joi.object({
     videoId: Joi.string().guid({ version: 'uuidv4' }).required(),
-    x: Joi.number().default(10),
-    y: Joi.number().default(10),
+    x: Joi.alternatives().try(Joi.string(), Joi.number()).default(10),
+    y: Joi.alternatives().try(Joi.string(), Joi.number()).default(10),
     scale: Joi.number().min(0.1).max(2).default(0.5),
     startTime: Joi.string().pattern(/^\d{2}:\d{2}:\d{2}$/).default('00:00:00'),
     duration: Joi.number().min(1).default(5)
@@ -147,12 +156,10 @@ const saveProjectSchema = Joi.object({
     thumbnail: Joi.string().optional()
 });
 
-// Schema for URL Params (GET /projects/:projectId)
 const projectIdSchema = Joi.object({
     projectId: Joi.string().guid({ version: 'uuidv4' }).required()
 });
 
-// Schema for Export Body (projectId is in params, so we remove it from here)
 const exportProjectSchema = Joi.object({
     format: Joi.string().valid('mp4', 'mov').default('mp4'),
     resolution: Joi.string().valid('1080p', '720p').default('1080p')
@@ -180,6 +187,6 @@ module.exports = {
     changeBgSchema,
     createProjectSchema,
     saveProjectSchema,
-    projectIdSchema, // ✅ Ensure this is exported!
+    projectIdSchema,
     exportProjectSchema
 };
